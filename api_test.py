@@ -20,13 +20,4 @@ df = pd.DataFrame.from_dict(request_dict["Weekly Adjusted Time Series"]).transpo
 df = df.sort_index(ascending=True)
 
 print(df)
-
-
-
-
-
-
-
-
-
-
+print(df.transpose)
