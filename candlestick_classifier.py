@@ -29,8 +29,8 @@ def candlestick_classifier(o, h, l, c):
 
 
     
-    print("body_height/total_height", body_height / total_height)
-    print("oc_height_ratio", oc_height_ratio)
+    #print("body_height/total_height", body_height / total_height)
+    #print("oc_height_ratio", oc_height_ratio)
     
 
     if body_height > 0.90 * total_height:
@@ -48,12 +48,10 @@ def candlestick_classifier(o, h, l, c):
     else:
         return None
 
-      
+if __name__ == "__main__":
 
-   
-
-plot_candlestick()
-print(candlestick_classifier(o,h,l,c))
+    plot_candlestick()
+    print(candlestick_classifier(o,h,l,c))
 
 
 
