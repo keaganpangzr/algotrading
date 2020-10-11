@@ -5,6 +5,8 @@ from data_transformation import shift_transform
 import graphviz 
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 import os
 os.environ["PATH"] += os.pathsep + 'C:/Users/Keagan/anaconda3/envs/trading/Library/bin/graphviz'
 pd.options.display.width = 80
@@ -22,7 +24,7 @@ def feature_engineering(df_data, lookback_period):
     df_transformed = df_transformed.astype(int)
     return df_transformed
 
-def dtree_classifier(df_transformed, max_depth, lookback_period, export: bool):  
+def dtree_classifier(df_transformed, max_depth, export: bool):  
     #features column names
     features = df_transformed.columns[1:]
 
@@ -42,7 +44,41 @@ def dtree_classifier(df_transformed, max_depth, lookback_period, export: bool):
     #accuracy
     y_pred = clf.predict(X_test)
     #print(symbol, 'Accuracy:', metrics.accuracy_score(y_test, y_pred))
-    return metrics.accuracy_score(y_test, y_pred)
+    return round(metrics.accuracy_score(y_test, y_pred), 4)
+
+def rtree_classifier(df_transformed, n_trees):  
+    #features column names
+    features = df_transformed.columns[1:]
+
+    #train model
+    y = df_transformed['up_down']
+    X = df_transformed[features]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state= 1)
+    rclf = RandomForestClassifier(n_estimators=n_trees)
+    rclf = rclf.fit(X_train, y_train)
+
+    #accuracy
+    y_pred = rclf.predict(X_test)
+    #print(symbol, 'Accuracy:', metrics.accuracy_score(y_test, y_pred))
+    return round(metrics.accuracy_score(y_test, y_pred), 4)
+
+def logreg_classifier(df_transformed):
+    #features column names
+    features = df_transformed.columns[1:]
+
+    #train model
+    y = df_transformed['up_down']
+    X = df_transformed[features]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state= 1)
+    logreg = LogisticRegression()
+    logreg = logreg.fit(X_train,y_train)
+    
+    #accuracy
+    y_pred = logreg.predict(X_test)
+    #print(symbol, 'Accuracy:', metrics.accuracy_score(y_test, y_pred))
+    return round(metrics.accuracy_score(y_test, y_pred), 4)
 
 
 if __name__ == '__main__':
@@ -52,16 +88,19 @@ if __name__ == '__main__':
 
     print('Symbols in HDF file: ', symbols)
 
-    for symbol in symbols:
+    
+    df_data = pd.read_hdf("hdf/random_30_NIpos.h5", 'DOX')
+    df_data = data_preprocessing(df_data)
 
-        df_data = pd.read_hdf("hdf/random_30_NIpos.h5", symbol)
-        df_data = data_preprocessing(df_data)
-        #print(df_data)
+    df_transformed = feature_engineering(df_data, 10)
+    #print(df_transformed)
 
-        df_transformed = feature_engineering(df_data, 3)
-        #print(df_transformed)
+    #print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3, False))
+    print('DOX', 'Decision tree: ', dtree_classifier(df_transformed, 3, False),
+                'Random forest: ', rtree_classifier(df_transformed, 128),
+                'Logreg: ', logreg_classifier(df_transformed))
 
-        print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3,3, False))
+
 
 
 
