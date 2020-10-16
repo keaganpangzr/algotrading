@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 import os
 os.environ["PATH"] += os.pathsep + 'C:/Users/Keagan/anaconda3/envs/trading/Library/bin/graphviz'
 pd.options.display.width = 80
@@ -81,12 +82,29 @@ def logreg_classifier(df_transformed):
     return round(metrics.accuracy_score(y_test, y_pred), 4)
 
 
+def nn_classifier(df_transformed, hidden_layer_sizes:tuple):
+    #features column names
+    features = df_transformed.columns[1:]
+
+    #train model
+    y = df_transformed['up_down']
+    X = df_transformed[features]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size= 0.3, random_state= 1)
+    nnclf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes= hidden_layer_sizes, random_state=1, max_iter= 1500)
+    nnclf = nnclf.fit(X_train, y_train)
+
+    y_pred = nnclf.predict(X_test)
+    return round(metrics.accuracy_score(y_test, y_pred), 4)
+
+
 if __name__ == '__main__':
+    pass
     
     with pd.HDFStore("hdf/random_30_NIpos.h5", mode="r") as h:
         symbols = h.keys()
 
-    print('Symbols in HDF file: ', symbols)
+    print('Symbols in HDF file: ', symbols[:10])
 
     
     df_data = pd.read_hdf("hdf/random_30_NIpos.h5", 'DOX')
@@ -96,9 +114,20 @@ if __name__ == '__main__':
     #print(df_transformed)
 
     #print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3, False))
-    print('DOX', 'Decision tree: ', dtree_classifier(df_transformed, 3, False),
+    
+    for symbol in symbols:
+        df_data = pd.read_hdf("hdf/random_30_NIpos.h5", symbol)
+        df_data = data_preprocessing(df_data)
+        df_transformed = feature_engineering(df_data, 10)
+        
+
+        print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3, False),
                 'Random forest: ', rtree_classifier(df_transformed, 128),
-                'Logreg: ', logreg_classifier(df_transformed))
+                'Logreg: ', logreg_classifier(df_transformed),
+                'ANN: ', nn_classifier(df_transformed, (150)))
+
+
+
 
 
 
