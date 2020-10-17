@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 import os
 os.environ["PATH"] += os.pathsep + 'C:/Users/Keagan/anaconda3/envs/trading/Library/bin/graphviz'
-pd.options.display.width = 80
+pd.options.display.width = 200
 #pd.set_option('display.max_rows', None)
 
 
@@ -18,12 +18,33 @@ def data_preprocessing(df_data):
     '''Transform and encode data for up/down classification'''
     df_data = df_data.astype(float)
     df_data['up_down'] = np.where((df_data['4. close'] - df_data['1. open']) > 0, 1, 0)
+    
+    
+    #AV
+    df_data['HLC_sum'] = df_data[['2. high', '3. low','4. close']].sum(axis=1)
+    df_data['AV'] = df_data['HLC_sum'][::-1].shift(1).rolling(3).mean()/3
+
+    #close above/below AV
+    df_data['close_above_AV'] = np.where((df_data['4. close'] - df_data['AV']) > 0, 1, 0)
     return df_data
 
+
+'''
 def feature_engineering(df_data, lookback_period):
     df_transformed = shift_transform(df_data, {"up_down":"up_down"}, lookback_period)
     df_transformed = df_transformed.astype(int)
     return df_transformed
+'''
+def feature_engineering(df_data, lookback_period):
+    df_transformed = df_data['up_down'].to_frame()
+    
+
+
+    df_transformed = shift_transform(df_data, {"close_above_AV":"c_AV"}, lookback_period)
+    df_transformed = df_transformed.astype(int)
+    return df_transformed
+
+
 
 def dtree_classifier(df_transformed, max_depth, export: bool):  
     #features column names
@@ -81,7 +102,6 @@ def logreg_classifier(df_transformed):
     #print(symbol, 'Accuracy:', metrics.accuracy_score(y_test, y_pred))
     return round(metrics.accuracy_score(y_test, y_pred), 4)
 
-
 def nn_classifier(df_transformed, hidden_layer_sizes:tuple):
     #features column names
     features = df_transformed.columns[1:]
@@ -99,32 +119,41 @@ def nn_classifier(df_transformed, hidden_layer_sizes:tuple):
 
 
 if __name__ == '__main__':
-    pass
+    df_data = pd.read_hdf("hdf/random_30_NIpos.h5", 'DOX')
+    df_data = data_preprocessing(df_data)
+
+    print(df_data)
+
+    df_transformed = feature_engineering(df_data, 5)
+    print(df_transformed)
+
+    
+     
+    
+    
+    
+    
     
     with pd.HDFStore("hdf/random_30_NIpos.h5", mode="r") as h:
         symbols = h.keys()
 
-    print('Symbols in HDF file: ', symbols[:10])
-
-    
-    df_data = pd.read_hdf("hdf/random_30_NIpos.h5", 'DOX')
-    df_data = data_preprocessing(df_data)
-
-    df_transformed = feature_engineering(df_data, 10)
-    #print(df_transformed)
-
+    print('Symbols in HDF file: ', symbols)
     #print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3, False))
+    
+
     
     for symbol in symbols:
         df_data = pd.read_hdf("hdf/random_30_NIpos.h5", symbol)
         df_data = data_preprocessing(df_data)
-        df_transformed = feature_engineering(df_data, 10)
+        df_transformed = feature_engineering(df_data, 5)
         
 
         print(symbol, 'Decision tree: ', dtree_classifier(df_transformed, 3, False),
                 'Random forest: ', rtree_classifier(df_transformed, 128),
                 'Logreg: ', logreg_classifier(df_transformed),
                 'ANN: ', nn_classifier(df_transformed, (150)))
+    
+    
 
 
 
